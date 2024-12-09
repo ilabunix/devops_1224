@@ -1,0 +1,235 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "IAM Role for Pre-Signed URLs with Monitoring and Alerts"
+
+Parameters:
+  Environment:
+    Description: "Deployment environment (e.g., dev, prod)"
+    Type: String
+    Default: "dev"
+    AllowedValues:
+      - dev
+      - prod
+
+Conditions:
+  IsProduction:
+    Fn::Equals:
+      - !Ref Environment
+      - "prod"
+
+Resources:
+  # IAM Role for Pre-Signed URL Generation
+  S3PresignedURLRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "S3PresignedURLRole-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS:
+                - "arn:aws:iam::123456789012:user/OpsUser1"
+                - "arn:aws:iam::123456789012:user/OpsUser2"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "S3AccessPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: "RestrictedS3Access"
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                Resource:
+                  - "arn:aws:s3:::your-bucket-name"
+                  - "arn:aws:s3:::your-bucket-name/*"
+              - Sid: "KMSDecryptAccess"
+                Effect: "Allow"
+                Action:
+                  - "kms:Decrypt"
+                Resource:
+                  - "arn:aws:kms:region:account-id:key/key-id"
+              - Sid: "ListAllBucketsAccess"
+                Effect: "Allow"
+                Action:
+                  - "s3:ListAllMyBuckets"
+                Resource: "*"
+      Tags:
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Application"
+          Value: "PreSignedURLService"
+        - Key: "Owner"
+          Value: "OpsTeam"
+
+  # CloudWatch Log Group for CloudTrail Logs
+  CloudWatchLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: "/aws/cloudtrail/S3PresignedURLRole"
+      RetentionInDays: 30
+      Tags:
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Application"
+          Value: "PreSignedURLService"
+
+  # CloudWatch Metric Filter
+  MetricFilter:
+    Type: "AWS::Logs::MetricFilter"
+    Properties:
+      LogGroupName: "/aws/cloudtrail/YOUR-EXISTING-CLOUDTRAIL-LOG-GROUP-NAME"
+      FilterPattern: "{ $.userIdentity.sessionContext.sessionIssuer.arn = *S3PresignedURLRole* && $.eventName = GetObject }"
+      MetricTransformations:
+        - MetricValue: "1"
+          MetricNamespace: "IAMRoleActivity"
+          MetricName: "S3GetObjectActivity"
+
+  # CloudWatch Alarm
+  CloudWatchAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Condition: IsProduction
+    Properties:
+      AlarmName: "IAMRoleActivityAlert"
+      MetricName: "S3GetObjectActivity"
+      Namespace: "IAMRoleActivity"
+      Statistic: "Sum"
+      Period: 300
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      EvaluationPeriods: 1
+      AlarmActions:
+        - !Ref NotificationTopic
+      Tags:
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Application"
+          Value: "PreSignedURLService"
+
+  # SNS Topic for Notifications
+  NotificationTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName: !Sub "IAMRoleActivityAlerts-${Environment}"
+      Tags:
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Application"
+          Value: "PreSignedURLService"
+
+  # Lambda Function for Formatting Alerts
+  AlertFormatterLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: !Sub "AlertFormatterLambda-${Environment}"
+      Handler: "lambda_function.lambda_handler"
+      Runtime: "python3.9"
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import os
+
+          sns_client = boto3.client('sns')
+
+          def lambda_handler(event, context):
+              # Parse the incoming CloudWatch Alarm event
+              sns_message = event['Records'][0]['Sns']['Message']
+              alarm_data = json.loads(sns_message)
+
+              # Extract relevant details from the CloudTrail event
+              event_details = alarm_data.get('detail', {})
+              account_id = event_details.get('accountId', 'Unknown Account')
+              account_alias = os.environ.get('ACCOUNT_ALIAS', 'Unknown Alias')  # Set account alias in Lambda environment variables
+              role_name = event_details.get('userIdentity', {}).get('arn', 'Unknown Role').split('/')[-1]
+              action = event_details.get('eventName', 'Unknown Action')
+              resource = event_details.get('resources', [{}])[0].get('ARN', 'Unknown Resource')
+              source_ip = event_details.get('sourceIPAddress', 'Unknown IP')
+              event_time = event_details.get('eventTime', 'Unknown Time')
+              request_id = event_details.get('requestID', 'Unknown Request ID')
+              user_agent = event_details.get('userAgent', 'Unknown User Agent')
+
+              # Format the email
+              subject = f"[ALERT] IAM Role Activity Detected: {action} in Account \"{account_alias}\""
+              message = f"""
+An IAM Role activity was detected in your AWS account.
+
+Details of the activity:
+-------------------------------------
+Account Alias:        {account_alias}
+Account ID:           {account_id}
+Role Name:            {role_name}
+Action Performed:     {action}
+Target Resource:      {resource}
+Event Time:           {event_time}
+Source IP:            {source_ip}
+Request ID:           {request_id}
+User Agent:           {user_agent}
+
+Description:
+The IAM role "{role_name}" was used to perform the action "{action}" on the resource "{resource}". The request originated from IP address {source_ip} via the {user_agent}.
+
+If this action was unauthorized or unexpected, investigate immediately.
+
+-------------------------------------
+This alert was generated by your AWS monitoring system.
+"""
+
+              # Publish the email via SNS
+              sns_client.publish(
+                  TopicArn=os.environ['SNS_TOPIC_ARN'],  # Set the SNS Topic ARN in the Lambda environment variables
+                  Subject=subject,
+                  Message=message
+              )
+
+              return {
+                  'statusCode': 200,
+                  'body': 'Alert sent successfully.'
+              }
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref NotificationTopic
+          ACCOUNT_ALIAS: "YourAccountAlias"
+      Tags:
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Application"
+          Value: "PreSignedURLService"
+
+  # Lambda Execution Role
+  LambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "AlertFormatterLambdaRole-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "CloudWatchReadSNSPublish"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:FilterLogEvents"
+                  - "sns:Publish"
+                Resource: "*"
+      Tags:
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Application"
+          Value: "PreSignedURLService"
+
+Outputs:
+  NotificationTopicARN:
+    Description: "The ARN of the SNS Topic for alerts"
+    Value: !Ref NotificationTopic
+  IAMRoleARN:
+    Description: "The ARN of the IAM role for generating pre-signed URLs"
+    Value: !GetAtt S3PresignedURLRole.Arn
