@@ -1,0 +1,9 @@
+{
+  "Records": [
+    {
+      "Sns": {
+        "Message": "{\"detail\": {\"accountId\": \"123456789012\", \"userIdentity\": {\"arn\": \"arn:aws:iam::123456789012:role/S3PresignedURLRole\"}, \"eventName\": \"GetObject\", \"resources\": [{\"ARN\": \"arn:aws:s3:::example-bucket/some-object\"}], \"sourceIPAddress\": \"192.0.2.123\", \"eventTime\": \"2024-01-01T12:00:00Z\", \"requestID\": \"12345\", \"userAgent\": \"AWS-Console\"}}"
+      }
+    }
+  ]
+}
