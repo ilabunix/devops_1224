@@ -1,0 +1,73 @@
+If you need to create and push to a branch like feat/initial, here’s how you can modify the steps:
+
+Steps to Push Local Folders to a Specific Branch
+
+1. Navigate to the Project Folder
+
+Example for project1:
+
+cd ces-base/project1
+
+2. Initialize Git
+
+git init
+
+3. Connect to the GitLab Repository
+
+Add the remote repository URL.
+
+git remote add origin <gitlab_repo_url>
+
+4. Create a New Branch
+
+Create and switch to the feat/initial branch.
+
+git checkout -b feat/initial
+
+5. Add Files to Git
+
+Stage all files in the folder.
+
+git add .
+
+6. Commit the Files
+
+Commit the staged files with a message.
+
+git commit -m "Initial commit for project1"
+
+7. Push to the New Branch
+
+Push the changes to the feat/initial branch on the remote repository.
+
+git push -u origin feat/initial
+
+8. Repeat for Other Projects
+
+Repeat the process for the other projects, replacing the repository URL and following the same steps.
+
+Example for Project 2:
+
+cd ces-base/project2
+git init
+git remote add origin <gitlab_repo_url_project2>
+git checkout -b feat/initial
+git add .
+git commit -m "Initial commit for project2"
+git push -u origin feat/initial
+
+Example for Project 3:
+
+cd ces-base/project3
+git init
+git remote add origin <gitlab_repo_url_project3>
+git checkout -b feat/initial
+git add .
+git commit -m "Initial commit for project3"
+git push -u origin feat/initial
+
+Verify the Push
+
+Go to GitLab and check that each repository has the files pushed to the feat/initial branch.
+
+If you need further clarification, feel free to ask!
