@@ -1,0 +1,146 @@
+Here’s a **Confluence-style documentation** for the hybrid Grafana + CloudWatch dashboard approach, formatted for easy team reference:
+
+---
+
+# **Hybrid AWS Monitoring Dashboard (Grafana + CloudWatch)**  
+*Last updated: [Date]*  
+*Owner: [Your Name/Team]*  
+
+---
+
+## **1. Overview**  
+### **Purpose**  
+This documentation outlines the implementation of a **hybrid monitoring solution** using Grafana and AWS CloudWatch, combining a **global single-pane dashboard** with **drill-down sub-dashboards** for granular insights.  
+
+### **Key Benefits**  
+- **High-level visibility** for executives and on-call teams.  
+- **Deep dives** for DevOps, FinOps, and Security teams.  
+- **Dynamic filtering** using Grafana variables.  
+- **Cost-effective** by reducing redundant queries.  
+
+---
+
+## **2. Architecture**  
+![Hybrid Dashboard Architecture](https://dummyurl.com/architecture-diagram) *(Mock diagram: Global dashboard → linked sub-dashboards)*  
+
+### **Components**  
+1. **Global Dashboard**:  
+   - Aggregates cross-account/cross-service metrics (cost, alarms, compliance).  
+   - Includes drill-down links to sub-dashboards.  
+2. **Sub-Dashboards**:  
+   - Service-specific (EC2, RDS, Lambda).  
+   - Team-specific (Security, Finance).  
+   - Environment-specific (Prod, Dev).  
+
+---
+
+## **3. Implementation Steps**  
+
+### **3.1 Prerequisites**  
+- **Grafana Instance**: AWS Managed Grafana or self-hosted.  
+- **CloudWatch Data Source**: Configured in Grafana with IAM permissions.  
+- **AWS Metrics**: Ensure CloudWatch metrics are enabled for relevant services (e.g., EC2, S3).  
+
+---
+
+### **3.2 Global Dashboard Setup**  
+
+#### **Panels to Include**  
+| Panel                 | Description                                | Query Example (CloudWatch) |  
+|-----------------------|--------------------------------------------|----------------------------|  
+| **MTD Spend vs Budget** | Monthly spend vs allocated budget.        | `SELECT SUM(EstimatedCharges) FROM AWS/Billing` |  
+| **Active Alarms**       | Critical CloudWatch alarms (e.g., CPU > 90%). | `ALARM_STATE(CRITICAL)` |  
+| **Service Health**      | Count of healthy/unhealthy services.      | `SELECT COUNT(StatusCheckFailed) FROM AWS/EC2` |  
+| **Security Score**      | AWS Security Hub compliance score.        | `SELECT CIS_COMPLIANCE_SCORE FROM AWS/SecurityHub` |  
+
+#### **Drill-Down Links**  
+1. Add a **dashboard link** to sub-dashboards:  
+   - *Panel → Links → Add Dashboard Link → Select Sub-Dashboard*.  
+2. Use **URL parameters** to pass variables (e.g., `?var-region=us-east-1`).  
+
+---
+
+### **3.3 Sub-Dashboard Setup (Example: EC2 Monitoring)**  
+
+#### **Step 1: Define Variables**  
+1. **Region** (Dropdown):  
+   ```yaml  
+   Name: region  
+   Type: Query  
+   Data Source: CloudWatch  
+   Query: regions()  
+   ```  
+2. **Instance ID** (Dependent on `region`):  
+   ```yaml  
+   Name: instance_id  
+   Type: Query  
+   Data Source: CloudWatch  
+   Query: instance_ids($region)  
+   ```  
+
+#### **Step 2: Build Panels**  
+| Panel                 | Query (CloudWatch)                         |  
+|-----------------------|--------------------------------------------|  
+| **CPU Utilization**   | `SELECT AVG(CPUUtilization) FROM AWS/EC2 WHERE InstanceId = '$instance_id'` |  
+| **Network Traffic**   | `SELECT NetworkIn, NetworkOut FROM AWS/EC2 WHERE Region = '$region'` |  
+| **Alarms**            | `ALARM_STATE(CRITICAL) WHERE InstanceId = '$instance_id'` |  
+
+#### **Step 3: Add Navigation**  
+- Include a **"Back to Global Dashboard"** link in the sub-dashboard header.  
+
+---
+
+### **3.4 Variables in Action**  
+![Variable Demo](https://dummyurl.com/variable-demo) *(Mock: Dropdowns for region/instance-id)*  
+
+---
+
+## **4. Example Workflow**  
+1. **Global Dashboard**:  
+   - A user sees "EC2 CPU Avg: 75%" and clicks the **Jump to EC2 Dashboard** link.  
+2. **EC2 Sub-Dashboard**:  
+   - Selects `region=us-east-1` and `instance_id=i-12345` from dropdowns.  
+   - Reviews CPU trends, network traffic, and alarms for the instance.  
+
+---
+
+## **5. Best Practices**  
+- **Performance**: Limit global dashboard to 15 panels; split heavy queries into sub-dashboards.  
+- **Security**: Use Grafana’s RBAC to restrict sub-dashboard access (e.g., FinOps team can’t view security dashboards).  
+- **Version Control**: Export dashboards as JSON and store in Git.  
+- **Annotations**: Mark deployments/incidents on graphs (e.g., `Deployed v2.1`).  
+
+---
+
+## **6. Troubleshooting**  
+| Issue                     | Solution                                  |  
+|---------------------------|-------------------------------------------|  
+| **Variables not populating** | Check IAM permissions for CloudWatch metrics. |  
+| **Broken drill-down links** | Verify dashboard UIDs in Grafana links.   |  
+| **High loading times**      | Reduce query scope (e.g., shorter time ranges). |  
+
+---
+
+## **7. FAQ**  
+**Q: Can I reuse sub-dashboards across multiple AWS accounts?**  
+*A: Yes! Use Grafana’s cross-account CloudWatch integration.*  
+
+**Q: How to automate dashboard creation?**  
+*A: Use Terraform’s Grafana provider or AWS CloudFormation.*  
+
+**Q: Can I add custom business metrics?**  
+*A: Yes—use Grafana’s “Mixed Data Source” to combine CloudWatch with databases (e.g., PostgreSQL).*  
+
+---
+
+## **8. References**  
+- [Grafana CloudWatch Documentation](https://grafana.com/docs/grafana/latest/datasources/aws-cloudwatch/)  
+- [AWS Managed Grafana Setup Guide](https://docs.aws.amazon.com/grafana/latest/userguide/getting-started.html)  
+
+---
+
+*For support, contact [Your Team’s Email/Slack Channel].*  
+
+--- 
+
+Let me know if you’d like to expand on specific sections (e.g., detailed variable configuration or Terraform scripts)!
