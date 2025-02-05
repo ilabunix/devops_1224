@@ -1,0 +1,67 @@
+GenAI-Driven Cloud Ops Assistant for Incident Resolution
+
+Confluence Documentation – Brainstorming & Design Overview
+
+Objective
+
+The goal of this initiative is to enable the Cloud Ops team to leverage Generative AI (GenAI) for real-time assistance in alert resolution and troubleshooting. The AI assistant will integrate with Confluence to fetch relevant information from playbooks and runbooks and provide guided steps to resolve incidents or alerts effectively.
+
+High-Level Architecture
+
+Components
+	1.	AWS Bedrock (GenAI Engine)
+	•	Uses LLMs to generate responses based on Confluence documentation.
+	•	Provides contextual recommendations based on historical incident resolution.
+	2.	Confluence Connector
+	•	Extracts data from Confluence pages (runbooks, playbooks).
+	•	Stores structured knowledge in a vector database for efficient retrieval.
+	3.	AWS Lambda (Backend Logic)
+	•	Handles API requests between Confluence, Bedrock, and the chatbot interface.
+	•	Implements pre-processing (text cleanup, formatting) and post-processing (ranking relevant responses).
+	4.	Vector Database (Amazon OpenSearch/Kendra)
+	•	Stores extracted playbooks in a format optimized for GenAI retrieval.
+	•	Enables efficient semantic search to match user queries to relevant content.
+	5.	Chatbot Interface (Amazon Lex/Slack Integration)
+	•	Provides an interface for Cloud Ops engineers to ask questions.
+	•	Sends queries to Bedrock and returns AI-generated responses.
+
+Model Selection in AWS Bedrock
+	•	Anthropic Claude: Best for detailed explanations and structured troubleshooting guidance.
+	•	Amazon Titan: Can be fine-tuned for custom enterprise knowledge bases.
+	•	Jurassic-2 (AI21 Labs): Suitable for summarizing long Confluence documents quickly.
+
+For a POC, Claude or Titan is recommended due to their ability to generate precise, structured responses.
+
+Proposed Implementation Plan (POC in AWS Sandbox)
+
+Phase 1: Initial Setup & Data Extraction
+	1.	Deploy Confluence Connector
+	•	Configure API access to Confluence (OAuth or API tokens).
+	•	Extract and structure data from relevant pages (playbooks, runbooks).
+	2.	Set Up Amazon Kendra/OpenSearch
+	•	Index Confluence documents for efficient retrieval.
+	•	Enable semantic search capabilities.
+
+Phase 2: AI Model Integration
+	3.	Deploy AWS Bedrock (LLM Model Selection)
+	•	Choose Claude or Titan as the GenAI model.
+	•	Fine-tune with sample incident data for better context understanding.
+	4.	Implement Query Processing (AWS Lambda)
+	•	Take user input and match it against Confluence data.
+	•	Perform real-time query expansion for better context retrieval.
+
+Phase 3: Frontend & User Interaction
+	5.	Integrate with Amazon Lex (Chatbot) or Slack
+	•	Enable Cloud Ops engineers to ask questions via a chatbot.
+	•	Route responses dynamically from Bedrock through the chatbot.
+	6.	Enable Continuous Learning & Feedback
+	•	Capture user feedback to improve response accuracy.
+	•	Implement retraining mechanisms for refining AI recommendations.
+
+Next Steps for POC Validation
+	•	Deploy sandbox environment in AWS.
+	•	Connect Confluence and set up a basic pipeline.
+	•	Test model responses against different alert scenarios.
+	•	Gather feedback from the Cloud Ops team for improvements.
+
+This POC will serve as a foundation for a production-ready AI assistant tailored for incident resolution and troubleshooting automation.
