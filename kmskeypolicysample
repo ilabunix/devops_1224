@@ -1,0 +1,15 @@
+{
+    "Effect": "Allow",
+    "Action": [
+        "kms:CreateKey",
+        "kms:DescribeKey",
+        "kms:CreateAlias",
+        "kms:EnableKey",
+        "kms:EnableKeyRotation",
+        "kms:GetKeyPolicy",
+        "kms:ListAliases",
+        "kms:ListKeys",
+        "kms:TagResource"
+    ],
+    "Resource": "*"
+}
