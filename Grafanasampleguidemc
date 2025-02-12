@@ -1,0 +1,247 @@
+**Master Sheet for AWS Monitoring & Alerting (Exhaustive List with Critical, High, & Medium Alerts)**  
+*Includes memory metrics for EC2 and thresholds for all severity levels.*  
+
+---
+
+### **EC2**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `StatusCheckFailed_Instance`         | >0 occurrences                              | Critical | Replace instance; Check hardware/OS failures.                                    |
+| `StatusCheckFailed_System`           | >0 occurrences                              | Critical | Reboot instance; Verify AWS infrastructure health.                               |
+| `CPUUtilization`                     | >90% sustained for 10 mins                  | Critical | Scale vertically/horizontally; Optimize processes.                               |
+| `DiskSpaceUtilization`               | >95%                                        | Critical | Delete files; Expand EBS volume.                                                 |
+| `NetworkPacketsIn/Out`               | Sudden drop >75%                            | Critical | Investigate NACLs/Security Groups; Check instance network stack.                |
+| `BurstBalance` (T-series)            | <10%                                        | Critical | Migrate to non-burstable instance; Monitor CPU credits.                         |
+| **High Alerts**                                                                                                                              |
+| `MemoryUtilization` (custom agent)   | >90% sustained for 10 mins                  | High     | Optimize application memory; Scale instance.                                     |
+| `SwapUsage` (custom agent)           | >50% of total swap                          | High     | Check memory leaks; Increase instance memory.                                   |
+| `CPUUtilization`                     | >80% sustained for 15 mins                  | High     | Investigate process load; Consider Auto Scaling.                                |
+| `EBSIOBalance%`                      | <20%                                        | High     | Migrate to Provisioned IOPS; Optimize I/O patterns.                             |
+| **Medium Alerts**                                                                                                                            |
+| `MetadataServiceRequestFailures`     | >5% of requests                             | Medium   | Validate IMDSv2 configuration; Restart instance.                                |
+| `NetworkIn/Out`                      | >1 Gbps sustained                           | Medium   | Check application traffic; Optimize network usage.                              |
+| `VolumeQueueLength`                  | >10 sustained                               | Medium   | Optimize disk I/O; Use larger volumes.                                          |
+
+---
+
+### **Elastic Beanstalk**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `EnvironmentHealth`                  | Status ≠ "Ok"                               | Critical | Check application logs; Validate Auto Scaling group health.                      |
+| `5xxErrorRate`                       | >5% of total requests                       | Critical | Debug backend services; Optimize code.                                           |
+| `InstanceCount`                      | < Desired count for 15 mins                 | Critical | Fix Auto Scaling policies; Check instance health.                                |
+| **High Alerts**                                                                                                                              |
+| `Latency (P99)`                      | >10 seconds                                 | High     | Optimize database queries; Check dependencies.                                  |
+| `4xxErrorRate`                       | >15% of total requests                      | High     | Investigate client-side errors (e.g., invalid API requests).                     |
+| **Medium Alerts**                                                                                                                            |
+| `DeploymentFailures`                 | >0 occurrences                              | Medium   | Validate deployment package; Check IAM roles.                                   |
+| `HealthyHostCount`                   | <50% of total hosts                         | Medium   | Review load balancer health checks; Adjust thresholds.                          |
+
+---
+
+### **AWS Fargate**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `RunningTaskCount`                   | < Desired count for 10 mins                 | Critical | Check task definitions; Resolve resource constraints.                            |
+| `MemoryUtilization`                  | >90% sustained for 5 mins                   | Critical | Increase memory allocation; Check for leaks.                                     |
+| `CPUUtilization`                     | >90% sustained for 5 mins                   | Critical | Scale tasks; Optimize container efficiency.                                      |
+| **High Alerts**                                                                                                                              |
+| `NetworkRxTx`                        | Sudden drop >80%                            | High     | Check ENI configurations; Verify VPC routing.                                   |
+| `TaskStopped`                        | >0 unexpected terminations                  | High     | Review exit codes; Check CloudWatch Logs.                                       |
+| **Medium Alerts**                                                                                                                            |
+| `StorageReadWriteOps`                | >1000 IOPS sustained                        | Medium   | Optimize disk I/O; Use EFS for shared storage.                                  |
+| `ContainerInstanceCount`             | < Desired for 30 mins                       | Medium   | Check cluster capacity; Fix Auto Scaling.                                       |
+
+---
+
+### **Lambda**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `Errors`                             | >5% of invocations                          | Critical | Debug code; Check IAM permissions.                                               |
+| `ConcurrentExecutions`               | >95% of account limit                       | Critical | Request limit increase; Use async processing.                                   |
+| `DeadLetterErrors`                   | >0 occurrences                              | Critical | Fix DLQ handlers; Investigate async failures.                                   |
+| **High Alerts**                                                                                                                              |
+| `Duration`                           | >90% of timeout limit                       | High     | Optimize code; Increase timeout.                                                |
+| `Throttles`                          | Any occurrence                              | High     | Adjust reserved concurrency; Optimize invocation patterns.                      |
+| **Medium Alerts**                                                                                                                            |
+| `IteratorAge` (Streams)              | >15 minutes                                 | Medium   | Scale consumers; Check event source mapping.                                    |
+| `ProvisionedConcurrencyUtilization`  | <20%                                        | Medium   | Reduce provisioned concurrency; Optimize cold starts.                           |
+
+---
+
+### **S3**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `5xxErrors`                          | >1 error in 5 mins                          | Critical | Check bucket policies; Contact AWS support.                                      |
+| `BucketSizeBytes`                    | >95% of quota                               | Critical | Delete objects; Request quota increase.                                          |
+| **High Alerts**                                                                                                                              |
+| `DeleteMarkers`                      | Sudden spike (>100/min)                     | High     | Enable versioning; Audit user activity.                                          |
+| `4xxErrorRate`                       | >10% of requests                            | High     | Investigate client permissions; Validate signed URLs.                            |
+| **Medium Alerts**                                                                                                                            |
+| `BytesDownloaded`                    | >1 TB in 1 hour                             | Medium   | Check for DDoS; Enable S3 access logging.                                        |
+| `ReplicationLatency` (if enabled)    | >1 hour                                     | Medium   | Check replication IAM roles; Verify destination bucket.                         |
+
+---
+
+### **EBS**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `BurstBalance` (gp2/gp3)             | <10%                                        | Critical | Migrate to Provisioned IOPS; Monitor credits.                                    |
+| `VolumeQueueLength`                  | >50 sustained                               | Critical | Optimize I/O; Use larger volumes.                                                |
+| **High Alerts**                                                                                                                              |
+| `VolumeIdleTime`                     | <5% (critical volumes)                      | High     | Investigate excessive I/O; Check application.                                    |
+| **Medium Alerts**                                                                                                                            |
+| `VolumeThroughput%`                  | >90% of limit                               | Medium   | Distribute load; Migrate to io1/io2 volumes.                                    |
+| `VolumeReadBytes/WriteBytes`         | >1 GB/sec sustained                         | Medium   | Optimize disk access patterns; Use larger volumes.                               |
+
+---
+
+### **VPC**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `VPNTunnelState`                     | Status ≠ "UP"                               | Critical | Restart VPN; Check BGP routes.                                                   |
+| `FlowLogsDeliveryErrors`             | >0 occurrences                              | Critical | Validate IAM roles; Check S3 permissions.                                        |
+| **High Alerts**                                                                                                                              |
+| `ActiveTcpConnections`               | >50,000                                     | High     | Investigate DDoS; Enable AWS Shield.                                             |
+| **Medium Alerts**                                                                                                                            |
+| `PacketDropCount`                    | >1000/min                                   | Medium   | Check NACLs/Security Groups; Audit traffic.                                      |
+| `NatGatewayErrorPortAllocation`      | >10% of packets                             | Medium   | Scale NAT gateway; Check subnet IPs.                                             |
+
+---
+
+### **Route 53**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `HealthCheckStatus`                  | Status ≠ "Healthy" for 5 checks             | Critical | Verify endpoint availability; Update routing.                                   |
+| **High Alerts**                                                                                                                              |
+| `DNSQueryFailureRate`                | >10%                                        | High     | Check resolver configuration; Enable DNSSEC.                                    |
+| **Medium Alerts**                                                                                                                            |
+| `Latency`                            | >2000ms                                     | Medium   | Use latency-based routing; Optimize TTLs.                                       |
+
+---
+
+### **CloudTrail**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `LogsDelivered`                      | 0 logs in 10 mins                           | Critical | Validate S3 bucket permissions; Enable multi-region logging.                     |
+| `UnauthorizedAPICalls`               | >0 occurrences                              | Critical | Review IAM policies; Enable GuardDuty.                                           |
+| **Medium Alerts**                                                                                                                            |
+| `LogFileValidationFailures`          | >0 occurrences                              | Medium   | Enable validation; Fix S3 bucket encryption.                                     |
+
+---
+
+### **Aurora DB**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `ReplicaLag`                         | >300 seconds                                | Critical | Promote replica; Check network latency.                                          |
+| `FreeLocalStorage`                   | <10%                                        | Critical | Scale storage; Optimize temp tables.                                             |
+| **High Alerts**                                                                                                                              |
+| `Deadlocks`                          | >10/min                                     | High     | Optimize transactions; Check indexing.                                           |
+| **Medium Alerts**                                                                                                                            |
+| `BufferCacheHitRatio`                | <90%                                        | Medium   | Increase buffer pool size; Optimize queries.                                     |
+
+---
+
+### **RDS**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `FreeStorageSpace`                   | <10%                                        | Critical | Expand storage; Archive data.                                                   |
+| `CPUUtilization`                     | >95% sustained                              | Critical | Optimize queries; Upgrade instance.                                             |
+| **High Alerts**                                                                                                                              |
+| `DatabaseConnections`                | >90% of max connections                     | High     | Terminate idle connections; Scale instance.                                     |
+| **Medium Alerts**                                                                                                                            |
+| `ReadLatency`                        | >100ms                                      | Medium   | Optimize queries; Use read replicas.                                            |
+
+---
+
+### **DynamoDB**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `ThrottledRequests`                  | >500 in 5 mins                              | Critical | Enable auto-scaling; Adjust capacity.                                           |
+| `SystemErrors`                       | >0 occurrences                              | Critical | Contact AWS support; Check partition design.                                    |
+| **Medium Alerts**                                                                                                                            |
+| `SuccessfulRequestLatency`           | >1 second                                   | Medium   | Optimize table design; Use DAX caching.                                         |
+
+---
+
+### **ELB (ALB/NLB)**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `UnHealthyHostCount`                 | >75% unhealthy                              | Critical | Replace instances; Check health checks.                                         |
+| `HTTPCode_ELB_5XX`                   | >20 errors in 5 mins                        | Critical | Scale ELB nodes; Check SSL certificates.                                        |
+| **High Alerts**                                                                                                                              |
+| `TargetResponseTime`                 | >5 seconds                                  | High     | Optimize backend services; Check application logs.                              |
+| **Medium Alerts**                                                                                                                            |
+| `ActiveFlowCount`                    | >10,000                                     | Medium   | Check for DDoS; Scale backend instances.                                        |
+
+---
+
+### **SQS**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `ApproximateAgeOfOldestMessage`      | >600 seconds                                | Critical | Scale consumers; Check DLQ.                                                     |
+| **High Alerts**                                                                                                                              |
+| `NumberOfMessagesSent`               | Sudden spike >500%                          | High     | Investigate producer activity; Enable alarms.                                   |
+| **Medium Alerts**                                                                                                                            |
+| `EmptyReceives`                      | >1000/min                                   | Medium   | Check for misconfigured long polling; Audit clients.                            |
+
+---
+
+### **Step Functions**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `ExecutionsFailed`                   | >10% of executions                          | Critical | Debug state machine; Add error handling.                                         |
+| **High Alerts**                                                                                                                              |
+| `ExecutionTime`                      | >30 minutes                                 | High     | Split workflows; Optimize Lambda/ECS tasks.                                     |
+| **Medium Alerts**                                                                                                                            |
+| `ThrottledEvents`                    | >500 in 5 mins                              | Medium   | Request quota increase; Add retries.                                            |
+
+---
+
+### **ECS**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `ServiceDesiredTaskCount` vs `Running` | Mismatch for 15 mins                      | Critical | Check cluster capacity; Fix task definitions.                                   |
+| **High Alerts**                                                                                                                              |
+| `CPUReservation`                     | >95%                                        | High     | Scale tasks; Optimize CPU allocation.                                           |
+| **Medium Alerts**                                                                                                                            |
+| `MemoryReservation`                  | >90%                                        | Medium   | Scale tasks; Optimize memory allocation.                                        |
+
+---
+
+### **APIGateway**  
+| Metric Name                          | Threshold                                   | Severity | Recommended Action                                                                 |
+|--------------------------------------|---------------------------------------------|----------|-----------------------------------------------------------------------------------|
+| **Critical Alerts**                                                                                                                          |
+| `5xxErrorRate`                       | >10% of requests                            | Critical | Check backend integrations; Scale EC2/Lambda.                                   |
+| **High Alerts**                                                                                                                              |
+| `IntegrationLatency`                 | >10 seconds                                 | High     | Optimize backend; Use caching.                                                  |
+| **Medium Alerts**                                                                                                                            |
+| `CacheHitCount`                      | <50%                                        | Medium   | Adjust cache TTL; Increase cache size.                                          |
+
+---
+
+### **General Recommendations**:  
+1. **Memory Monitoring for EC2**: Use the **CloudWatch Agent** to collect custom memory/swap metrics (not natively provided by AWS).  
+2. **Severity Customization**: Adjust thresholds based on environment (e.g., lower for production).  
+3. **Automation**: Use AWS Systems Manager (SSM) or Lambda for auto-remediation (e.g., restarting tasks, scaling resources).  
+4. **Dashboards**: Build Crackeron dashboards to visualize metrics across all resources.  
+5. **Documentation**: Link alarms to runbooks with step-by-step resolution guides.  
+
+This exhaustive list ensures **proactive monitoring** across all critical, high, and medium severity scenarios for AWS resources.
