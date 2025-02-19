@@ -18,16 +18,19 @@ longCondition = bullishCrossover and close > vwap
 // Short Entry Condition
 shortCondition = bearishCrossover and close < vwap
 
-// Exit Conditions
-exitLong = ta.crossunder(fastEMA, slowEMA)  // Close long when fast EMA crosses below slow EMA
-exitShort = ta.crossover(fastEMA, slowEMA)  // Close short when fast EMA crosses above slow EMA
-
 // Execute Trades
-strategy.entry("Long", strategy.long, when=longCondition)
-strategy.exit("Exit Long", from_entry="Long", when=exitLong)
+if (longCondition)
+    strategy.entry("Long", strategy.long)
 
-strategy.entry("Short", strategy.short, when=shortCondition)
-strategy.exit("Exit Short", from_entry="Short", when=exitShort)
+if (shortCondition)
+    strategy.entry("Short", strategy.short)
+
+// Exit conditions: Close trade when EMAs cross back
+if (ta.crossunder(fastEMA, slowEMA))
+    strategy.close("Long")
+
+if (ta.crossover(fastEMA, slowEMA))
+    strategy.close("Short")
 
 // Plot indicators on chart
 plot(vwap, title="VWAP", color=color.blue, linewidth=2)
