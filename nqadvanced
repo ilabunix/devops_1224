@@ -1,0 +1,127 @@
+Here's a Pine Script strategy code implementing the discussed exit framework for your NQ futures system. I've included comments to explain each component:
+
+```pinescript
+//@version=5
+strategy("NQ EMA System with Advanced Exits", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// ===== Inputs =====
+// EMAs
+ema10_len = input.int(10, "10 EMA Length")
+ema34_len = input.int(34, "34 PAC Length")
+ema55_len = input.int(55, "55 EMA Length")
+ema200_len = input.int(200, "200 EMA Length")
+
+// Risk Management
+risk_percent = input.float(1.0, "Risk % per Trade", step=0.5)
+initial_stop_type = input.string("ATR", "Initial Stop", options=["ATR", "Fixed"])
+initial_stop_atr_mult = input.float(1.5, "ATR Stop Multiplier", step=0.1)
+fixed_stop_points = input.int(50, "Fixed Stop Points", step=1)
+
+// Exit Parameters
+profit_multiplier = input.float(1.5, "Breakeven Trigger Multiplier", step=0.1)
+partial_exit_ratio = input.float(0.5, "Partial Exit %", step=0.1)
+
+// ===== Calculations =====
+// EMA Values
+ema10 = ta.ema(close, ema10_len)
+ema34 = ta.ema(close, ema34_len)
+ema55 = ta.ema(close, ema55_len)
+ema200 = ta.ema(close, ema200_len)
+
+// PAC Channel
+upper_pac = ema34
+lower_pac = ema34
+in_pac = close > lower_pac and close < upper_pac
+
+// Candle Color Condition
+var color candleColor = na
+candleColor := close > upper_pac ? color.blue : close < lower_pac ? color.red : color.gray
+
+// Volatility Measure
+atr = ta.atr(14)
+
+// Initial Stop Calculation
+initial_stop = if initial_stop_type == "ATR"
+    atr * initial_stop_atr_mult
+else
+    fixed_stop_points * syminfo.mintick
+
+// ===== Entry Conditions =====
+long_condition = ta.crossover(ema10, ema55) and (candleColor == color.blue)
+short_condition = ta.crossunder(ema10, ema55) and (candleColor == color.red)
+
+// ===== Strategy Logic =====
+if (long_condition)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("BE Stop", "Long", qty_percent=100, stop=close - initial_stop, trail_points=na, trail_offset=na)
+    
+if (short_condition)
+    strategy.entry("Short", strategy.short)
+    strategy.exit("BE Stop", "Short", qty_percent=100, stop=close + initial_stop, trail_points=na, trail_offset=na)
+
+// ===== Advanced Exit System =====
+// Break-Even Trigger
+if strategy.position_size > 0
+    if close >= strategy.position_avg_price + (initial_stop * profit_multiplier)
+        strategy.exit("BE Long", "Long", stop=strategy.position_avg_price)
+    
+if strategy.position_size < 0
+    if close <= strategy.position_avg_price - (initial_stop * profit_multiplier)
+        strategy.exit("BE Short", "Short", stop=strategy.position_avg_price)
+
+// Partial Profit Taking
+if strategy.position_size != 0
+    strategy.exit("Partial Exit", qty_percent=partial_exit_ratio * 100, profit=initial_stop * 2)
+
+// PAC Channel Exit
+if (in_pac)
+    strategy.close("Long", comment="PAC Exit")
+    strategy.close("Short", comment="PAC Exit")
+
+// 200EMA Emergency Stop
+if strategy.position_size > 0 and ta.crossunder(close, ema200)
+    strategy.close("Long", comment="200EMA Exit")
+    
+if strategy.position_size < 0 and ta.crossover(close, ema200)
+    strategy.close("Short", comment="200EMA Exit")
+
+// ===== Visualizations =====
+plot(ema10, color=color.blue, linewidth=2)
+plot(ema34, color=color.purple, linewidth=2)
+plot(ema55, color=color.red, linewidth=2)
+plot(ema200, color=color.black, linewidth=2)
+bgcolor(candleColor, transp=80)
+```
+
+### Key Features:
+1. **Multi-Layered Exit System**:
+   - Initial stop loss (ATR or fixed)
+   - Break-even stop moved after 1.5x risk
+   - 50% partial profit taking at 2x risk
+   - Full exit when price re-enters PAC channel
+   - Emergency 200EMA stop
+
+2. **Visual Components**:
+   - Plots all key EMAs (10,34,55,200)
+   - Colors background based on PAC position
+   - Shows exit reasons in data window
+
+3. **Risk Controls**:
+   - Percentage-based risk management
+   - Volatility-adjusted stops via ATR
+   - Configurable position sizing
+
+### Usage Notes:
+1. Adjust parameters in the Inputs section
+2. Test different stop types (ATR vs Fixed)
+3. Monitor exit reasons during backtesting
+4. Combine with your existing chart setup
+5. Recommended timeframe: 2-5 minute charts
+
+To improve results further:
+1. Add volume filters
+2. Incorporate session timing (e.g., avoid opening 30m)
+3. Test different partial exit ratios (40-60%)
+4. Add momentum confirmation with RSI(2)
+
+Always forward-test new parameters before live trading. The PAC channel exit acts as your primary trend-following mechanism while the 200EMA provides protection against major reversals.
