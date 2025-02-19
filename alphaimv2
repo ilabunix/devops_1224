@@ -1,0 +1,43 @@
+//@version=5
+strategy("AlphaTrend Strategy with Improved Exits", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// **Input Parameters**
+coeff = input.float(1, 'Multiplier', step=0.1)
+AP = input(14, 'Common Period')
+ATR = ta.sma(ta.tr, AP)
+src = input(close)
+showsignals = input(true, title="Show Signals?")
+novolumedata = input(title="Change Calculation (No Volume Data)?", defval=false)
+
+// **AlphaTrend Calculation**
+upT = low - ATR * coeff
+downT = high + ATR * coeff
+AlphaTrend = 0.0
+AlphaTrend := (novolumedata ? ta.rsi(src, AP) >= 50 : ta.mfi(hlc3, AP) >= 50) ? upT < nz(AlphaTrend[1]) ? nz(AlphaTrend[1]) : upT : downT > nz(AlphaTrend[1]) ? nz(AlphaTrend[1]) : downT
+
+// **Buy & Sell Conditions**
+buySignal = ta.crossover(AlphaTrend, AlphaTrend[2])
+sellSignal = ta.crossunder(AlphaTrend, AlphaTrend[2])
+
+// **Entry Logic (No Aggressive Trailing Exits)**
+if (buySignal)
+    strategy.entry("Long", strategy.long)
+if (sellSignal)
+    strategy.entry("Short", strategy.short)
+
+// **Exit Logic (Uses AlphaTrend Itself Instead of Trailing Stop)**
+if (ta.crossunder(close, AlphaTrend)) 
+    strategy.close("Long")
+if (ta.crossover(close, AlphaTrend))
+    strategy.close("Short")
+
+// **Plot AlphaTrend & Restore Original Visualization**
+color1 = AlphaTrend > AlphaTrend[2] ? #00E60F : AlphaTrend < AlphaTrend[2] ? #80000B : AlphaTrend[1] > AlphaTrend[3] ? #00E60F : #80000B
+k1 = plot(AlphaTrend, color=color.new(#0022FC, 0), linewidth=3, title="AlphaTrend Line")
+k2 = plot(AlphaTrend[2], color=color.new(#FC0400, 0), linewidth=3, title="AlphaTrend Previous")
+
+fill(k1, k2, color=color1)
+
+// **Plot Buy/Sell Signals**
+plotshape(series=buySignal and showsignals ? AlphaTrend[2] * 0.9999 : na, title="BUY", text="BUY", location=location.absolute, style=shape.labelup, size=size.tiny, color=color.green, textcolor=color.white)
+plotshape(series=sellSignal and showsignals ? AlphaTrend[2] * 1.0001 : na, title="SELL", text="SELL", location=location.absolute, style=shape.labeldown, size=size.tiny, color=color.red, textcolor=color.white)
