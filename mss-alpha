@@ -4,37 +4,37 @@ strategy("Market Structure with ATR & AlphaTrend Confirmation", overlay=true, de
 // **Input Parameters**
 atrLength = input(14, title="ATR Length")
 atrMultiplier = input(1.5, title="ATR Multiplier")
-trendSensitivity = input(3, title="Trend Sensitivity (Higher = Smoother)")
+trendSensitivity = input(5, title="Trend Sensitivity (Higher = Smoother)")
 
 // **Calculate ATR**
 atrValue = ta.atr(atrLength)
 
 // **Market Structure Detection**
-var float swingHigh = na
-var float swingLow = na
+swingHigh = ta.highest(high, trendSensitivity)
+swingLow = ta.lowest(low, trendSensitivity)
 
-// Identify Higher Highs (HH) and Lower Lows (LL)
-if ta.highest(high, trendSensitivity) == high
-    swingHigh := high
-if ta.lowest(low, trendSensitivity) == low
-    swingLow := low
-
-// Define Trend Bias
-isUpTrend = ta.barssince(swingLow) < ta.barssince(swingHigh)  // Uptrend if last swing low is more recent
-isDownTrend = ta.barssince(swingHigh) < ta.barssince(swingLow) // Downtrend if last swing high is more recent
-
-// **AlphaTrend-Like Trend Confirmation**
+// **Trend Confirmation (AlphaTrend-Like)**
 alphaTrend = ta.sma(close, trendSensitivity) > ta.sma(close, trendSensitivity * 2)
 
+// **Detect Market Structure: Higher Highs & Lower Lows**
+hh = high > ta.highest(high[1], trendSensitivity)  // Higher High
+hl = low > ta.lowest(low[1], trendSensitivity)    // Higher Low
+ll = low < ta.lowest(low[1], trendSensitivity)    // Lower Low
+lh = high < ta.highest(high[1], trendSensitivity) // Lower High
+
+// **Define Trend Bias**
+isUpTrend = (hh or hl) and alphaTrend
+isDownTrend = (ll or lh) and not alphaTrend
+
 // **Entry Conditions**
-longCondition = isUpTrend and alphaTrend
-shortCondition = isDownTrend and not alphaTrend
+longCondition = isUpTrend
+shortCondition = isDownTrend
 
 // **ATR-Based Stop-Loss & Take-Profit**
 longStop = close - (atrValue * atrMultiplier)
 shortStop = close + (atrValue * atrMultiplier)
 
-// Persistent Variables for Trailing Stops
+// **Persistent Variables for Trailing Stops**
 var float trailStopLong = na
 var float trailStopShort = na
 
@@ -45,7 +45,7 @@ if (longCondition)
 
 if (strategy.position_size > 0)
     trailStopLong := nz(trailStopLong, longStop)
-    trailStopLong := math.max(trailStopLong, longStop)
+    trailStopLong := math.max(trailStopLong, longStop)  // Trail up only
     strategy.exit("Long Exit", from_entry="Long", stop=trailStopLong)
 
 // **Short Trade Management**
@@ -55,7 +55,7 @@ if (shortCondition)
 
 if (strategy.position_size < 0)
     trailStopShort := nz(trailStopShort, shortStop)
-    trailStopShort := math.min(trailStopShort, shortStop)
+    trailStopShort := math.min(trailStopShort, shortStop)  // Trail down only
     strategy.exit("Short Exit", from_entry="Short", stop=trailStopShort)
 
 // **Plot Indicators**
