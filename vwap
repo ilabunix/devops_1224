@@ -1,0 +1,35 @@
+//@version=5
+strategy("VWAP + EMA Crossover Strategy", overlay=true)
+
+// VWAP Indicator
+vwap = ta.vwap
+
+// Exponential Moving Averages
+fastEMA = ta.ema(close, 9)
+slowEMA = ta.ema(close, 21)
+
+// EMA Crossover Signals
+bullishCrossover = ta.crossover(fastEMA, slowEMA)
+bearishCrossover = ta.crossunder(fastEMA, slowEMA)
+
+// Long Entry Condition
+longCondition = bullishCrossover and close > vwap
+
+// Short Entry Condition
+shortCondition = bearishCrossover and close < vwap
+
+// Exit Conditions
+exitLong = ta.crossunder(fastEMA, slowEMA)  // Close long when fast EMA crosses below slow EMA
+exitShort = ta.crossover(fastEMA, slowEMA)  // Close short when fast EMA crosses above slow EMA
+
+// Execute Trades
+strategy.entry("Long", strategy.long, when=longCondition)
+strategy.exit("Exit Long", from_entry="Long", when=exitLong)
+
+strategy.entry("Short", strategy.short, when=shortCondition)
+strategy.exit("Exit Short", from_entry="Short", when=exitShort)
+
+// Plot indicators on chart
+plot(vwap, title="VWAP", color=color.blue, linewidth=2)
+plot(fastEMA, title="EMA 9", color=color.green)
+plot(slowEMA, title="EMA 21", color=color.red)
