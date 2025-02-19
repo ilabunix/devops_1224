@@ -1,0 +1,67 @@
+//@version=5
+strategy("AlphaTrend with Swing High/Low Stop & Breakeven", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// **Input Parameters**
+coeff = input.float(1, 'Multiplier', step=0.1)
+AP = input(14, 'AlphaTrend Period')
+ATR = ta.sma(ta.tr, AP)
+src = input(close)
+showsignals = input(true, title="Show Signals?")
+novolumedata = input(false, title="Use RSI Instead of MFI?")
+breakevenThreshold = input(10, title="Move SL to BE After (Ticks)") // X points/ticks in profit
+tickSize = syminfo.mintick  // Tick size of the instrument
+
+// **AlphaTrend Calculation**
+upT = low - ATR * coeff
+downT = high + ATR * coeff
+AlphaTrend = 0.0
+AlphaTrend := (novolumedata ? ta.rsi(src, AP) >= 50 : ta.mfi(hlc3, AP) >= 50) ? upT < nz(AlphaTrend[1]) ? nz(AlphaTrend[1]) : upT : downT > nz(AlphaTrend[1]) ? nz(AlphaTrend[1]) : downT
+
+// **Swing High & Swing Low Detection for Stop-Loss Placement**
+swingLow = ta.lowest(low, AP)
+swingHigh = ta.highest(high, AP)
+
+// **Buy & Sell Conditions**
+buySignal = ta.crossover(AlphaTrend, AlphaTrend[2])
+sellSignal = ta.crossunder(AlphaTrend, AlphaTrend[2])
+
+// **Define Initial Stop-Loss and Take-Profit Levels**
+longSL = swingLow
+shortSL = swingHigh
+riskDistanceLong = close - longSL
+riskDistanceShort = shortSL - close
+longTP = close + riskDistanceLong  // TP = 1:1 risk-reward
+shortTP = close - riskDistanceShort
+
+// **Breakeven Logic: Move SL to Entry + 1 Tick Once Profit Exceeds Defined Threshold**
+var float trailStopLong = na
+var float trailStopShort = na
+
+if (buySignal)
+    trailStopLong := longSL
+    strategy.entry("Long", strategy.long, stop=trailStopLong)
+    strategy.exit("Long TP", from_entry="Long", limit=longTP)
+
+if (strategy.position_size > 0 and close - strategy.position_avg_price > breakevenThreshold * tickSize)
+    trailStopLong := strategy.position_avg_price + (1 * tickSize)  // Move SL to BE + 1 tick
+    strategy.exit("Long BE", from_entry="Long", stop=trailStopLong)
+
+if (sellSignal)
+    trailStopShort := shortSL
+    strategy.entry("Short", strategy.short, stop=trailStopShort)
+    strategy.exit("Short TP", from_entry="Short", limit=shortTP)
+
+if (strategy.position_size < 0 and strategy.position_avg_price - close > breakevenThreshold * tickSize)
+    trailStopShort := strategy.position_avg_price - (1 * tickSize)  // Move SL to BE - 1 tick
+    strategy.exit("Short BE", from_entry="Short", stop=trailStopShort)
+
+// **Plot AlphaTrend**
+color1 = AlphaTrend > AlphaTrend[2] ? #00E60F : AlphaTrend < AlphaTrend[2] ? #80000B : AlphaTrend[1] > AlphaTrend[3] ? #00E60F : #80000B
+k1 = plot(AlphaTrend, color=color.new(#0022FC, 0), linewidth=3, title="AlphaTrend Line")
+k2 = plot(AlphaTrend[2], color=color.new(#FC0400, 0), linewidth=3, title="AlphaTrend Previous")
+
+fill(k1, k2, color=color1)
+
+// **Plot Buy/Sell Signals**
+plotshape(series=buySignal and showsignals ? AlphaTrend[2] * 0.9999 : na, title="BUY", text="BUY", location=location.absolute, style=shape.labelup, size=size.tiny, color=color.green, textcolor=color.white)
+plotshape(series=sellSignal and showsignals ? AlphaTrend[2] * 1.0001 : na, title="SELL", text="SELL", location=location.absolute, style=shape.labeldown, size=size.tiny, color=color.red, textcolor=color.white)
