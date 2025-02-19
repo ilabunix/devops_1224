@@ -1,0 +1,60 @@
+//@version=5
+strategy("AlphaTrend Strategy with ATR Trailing Stop", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// **Input Parameters**
+coeff = input.float(1, 'Multiplier', step=0.1)
+AP = input(14, 'Common Period')
+ATR = ta.sma(ta.tr, AP)
+src = input(close)
+atrLength = input(14, title="ATR Length")
+atrMultiplier = input(2.0, title="ATR Multiplier")
+showsignals = input(true, title="Show Signals?")
+novolumedata = input(title="Change Calculation (No Volume Data)?", defval=false)
+
+// **Calculate AlphaTrend**
+upT = low - ATR * coeff
+downT = high + ATR * coeff
+AlphaTrend = 0.0
+AlphaTrend := (novolumedata ? ta.rsi(src, AP) >= 50 : ta.mfi(hlc3, AP) >= 50) ? upT < nz(AlphaTrend[1]) ? nz(AlphaTrend[1]) : upT : downT > nz(AlphaTrend[1]) ? nz(AlphaTrend[1]) : downT
+
+// **Buy & Sell Conditions**
+buySignal = ta.crossover(AlphaTrend, AlphaTrend[2])
+sellSignal = ta.crossunder(AlphaTrend, AlphaTrend[2])
+
+// **ATR Trailing Stop Calculation**
+atrValue = ta.atr(atrLength)
+longStop = close - (atrValue * atrMultiplier)
+shortStop = close + (atrValue * atrMultiplier)
+
+// **Persistent Variables for Trailing Stops**
+var float trailStopLong = na
+var float trailStopShort = na
+
+// **Long Trade Management**
+if (buySignal)
+    trailStopLong := longStop
+    strategy.entry("Long", strategy.long)
+
+if (strategy.position_size > 0)
+    trailStopLong := nz(trailStopLong, longStop)
+    trailStopLong := math.max(trailStopLong, longStop) // Move stop up only
+    strategy.exit("Long Exit", from_entry="Long", stop=trailStopLong)
+
+// **Short Trade Management**
+if (sellSignal)
+    trailStopShort := shortStop
+    strategy.entry("Short", strategy.short)
+
+if (strategy.position_size < 0)
+    trailStopShort := nz(trailStopShort, shortStop)
+    trailStopShort := math.min(trailStopShort, shortStop) // Move stop down only
+    strategy.exit("Short Exit", from_entry="Short", stop=trailStopShort)
+
+// **Plot Indicators**
+plot(AlphaTrend, color=color.blue, linewidth=2, title="AlphaTrend Line")
+plot(trailStopLong, color=color.green, style=plot.style_stepline, title="Long Trailing Stop")
+plot(trailStopShort, color=color.red, style=plot.style_stepline, title="Short Trailing Stop")
+
+// **Plot Buy/Sell Signals**
+plotshape(series=buySignal and showsignals ? AlphaTrend * 0.9999 : na, title="BUY", text="BUY", location=location.absolute, style=shape.labelup, size=size.tiny, color=color.green, textcolor=color.white)
+plotshape(series=sellSignal and showsignals ? AlphaTrend * 1.0001 : na, title="SELL", text="SELL", location=location.absolute, style=shape.labeldown, size=size.tiny, color=color.red, textcolor=color.white)
