@@ -1,0 +1,72 @@
+//@version=5
+strategy("FVG Strategy with 10 & 55 EMA", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// **Input Parameters**
+fvgLookback = input(5, title="FVG Lookback Period")
+atrLength = input(14, title="ATR Length")
+atrMultiplier = input(1.5, title="ATR Stop Multiplier")
+breakevenThresholdPoints = input(10, title="Move SL to BE After (Points)")
+tickSize = 0.25  // NQ tick size
+breakevenThresholdTicks = breakevenThresholdPoints / tickSize  // Convert points to ticks
+
+// **EMA Calculation for Trend Confirmation**
+emaFast = ta.ema(close, 10)
+emaSlow = ta.ema(close, 55)
+isUptrend = emaFast > emaSlow
+isDowntrend = emaFast < emaSlow
+
+// **Identify Fair Value Gaps (FVG)**
+fvgUp = ta.highest(high[1], fvgLookback) < low ? low : na
+fvgDown = ta.lowest(low[1], fvgLookback) > high ? high : na
+
+// **ATR Calculation for Dynamic Stop Placement**
+atrValue = ta.atr(atrLength)
+longSL = close - (atrValue * atrMultiplier)
+shortSL = close + (atrValue * atrMultiplier)
+longTP = close + (atrValue * atrMultiplier * 1.5) // 1:1.5 RR TP
+shortTP = close - (atrValue * atrMultiplier * 1.5)
+
+// **Trade Entries (Price Returns to FVG in Trend Direction)**
+longEntry = isUptrend and ta.crossover(close, fvgUp)
+shortEntry = isDowntrend and ta.crossunder(close, fvgDown)
+
+// **Breakeven & Stop Management Variables**
+var float trailStopLong = na
+var float trailStopShort = na
+var bool movedToBE = false
+
+// **Long Trade Logic**
+if (longEntry)
+    trailStopLong := longSL
+    movedToBE := false
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Long TP", from_entry="Long", limit=longTP, stop=longSL)
+
+if (strategy.position_size > 0 and close - strategy.position_avg_price > breakevenThresholdTicks * tickSize and not movedToBE)
+    trailStopLong := strategy.position_avg_price + (1 * tickSize)  // Move SL to BE +1 tick
+    movedToBE := true
+    strategy.exit("Long BE", from_entry="Long", stop=trailStopLong)
+
+// **Short Trade Logic**
+if (shortEntry)
+    trailStopShort := shortSL
+    movedToBE := false
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Short TP", from_entry="Short", limit=shortTP, stop=shortSL)
+
+if (strategy.position_size < 0 and strategy.position_avg_price - close > breakevenThresholdTicks * tickSize and not movedToBE)
+    trailStopShort := strategy.position_avg_price - (1 * tickSize)  // Move SL to BE -1 tick
+    movedToBE := true
+    strategy.exit("Short BE", from_entry="Short", stop=trailStopShort)
+
+// **Plot FVG Zones**
+plotshape(series=fvgUp, location=location.belowbar, color=color.green, style=shape.labelup, title="FVG Support")
+plotshape(series=fvgDown, location=location.abovebar, color=color.red, style=shape.labeldown, title="FVG Resistance")
+
+// **Plot Trend EMAs**
+plot(emaFast, color=color.blue, linewidth=2, title="10 EMA")
+plot(emaSlow, color=color.red, linewidth=2, title="55 EMA")
+
+// **Plot Entry Signals**
+plotshape(series=longEntry, location=location.belowbar, color=color.green, style=shape.labelup, title="Long Entry")
+plotshape(series=shortEntry, location=location.abovebar, color=color.red, style=shape.labeldown, title="Short Entry")
