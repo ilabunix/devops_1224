@@ -5,7 +5,7 @@ strategy("EMA Crossover with ATR Trailing Stop", overlay=true, default_qty_type=
 fastLength = input(10, title="Fast EMA Length")
 slowLength = input(55, title="Slow EMA Length")
 atrLength = input(14, title="ATR Length")
-atrMultiplier = input(2, title="ATR Multiplier")
+atrMultiplier = input(2.0, title="ATR Multiplier")
 
 // Calculate EMAs
 emaFast = ta.ema(close, fastLength)
@@ -18,11 +18,11 @@ atrValue = ta.atr(atrLength)
 longCondition = ta.crossover(emaFast, emaSlow)
 shortCondition = ta.crossunder(emaFast, emaSlow)
 
-// ATR-Based Trailing Stop Calculation
+// ATR-Based Initial Stop Levels
 longStop = close - (atrValue * atrMultiplier)
 shortStop = close + (atrValue * atrMultiplier)
 
-// Track Stop Levels
+// Persistent Variables for Trailing Stop
 var float trailStopLong = na
 var float trailStopShort = na
 
@@ -31,8 +31,10 @@ if (longCondition)
     trailStopLong := longStop
     strategy.entry("Long", strategy.long)
 
+// Update Long Trailing Stop
 if (strategy.position_size > 0)
-    trailStopLong := max(trailStopLong, longStop)  // Trailing Stop for Long
+    trailStopLong := nz(trailStopLong, longStop)  // Ensure it's not NaN
+    trailStopLong := math.max(trailStopLong, longStop)  // Move stop up only
     strategy.exit("Long Exit", from_entry="Long", stop=trailStopLong)
 
 // Short Trade Management
@@ -40,8 +42,10 @@ if (shortCondition)
     trailStopShort := shortStop
     strategy.entry("Short", strategy.short)
 
+// Update Short Trailing Stop
 if (strategy.position_size < 0)
-    trailStopShort := min(trailStopShort, shortStop)  // Trailing Stop for Short
+    trailStopShort := nz(trailStopShort, shortStop)  // Ensure it's not NaN
+    trailStopShort := math.min(trailStopShort, shortStop)  // Move stop down only
     strategy.exit("Short Exit", from_entry="Short", stop=trailStopShort)
 
 // Plot Indicators
