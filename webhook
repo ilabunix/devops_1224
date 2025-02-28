@@ -1,0 +1,11 @@
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.json
+    print("Received Webhook Data:", data)  # Print incoming data for debugging
+
+    action = data.get('action', '').upper()
+    if action in ["BUY", "SELL", "CLOSE"]:
+        execute_trade(action)
+        return {"status": "Trade Executed"}, 200
+    else:
+        return {"error": "Invalid action"}, 400
