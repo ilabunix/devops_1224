@@ -1,0 +1,299 @@
+{
+    "dashboard": {
+        "id": null,
+        "uid": null,
+        "title": "AWS Single Pane View",
+        "tags": [
+            "AWS",
+            "Infrastructure",
+            "Monitoring"
+        ],
+        "timezone": "browser",
+        "schemaVersion": 18,
+        "version": 0,
+        "refresh": "5m",
+        "panels": [
+            {
+                "title": "API Gateway Requests",
+                "type": "stat",
+                "datasource": "CloudWatch",
+                "targets": [
+                    {
+                        "namespace": "AWS/ApiGateway",
+                        "metricName": "Count",
+                        "statistics": [
+                            "Sum"
+                        ],
+                        "dimensions": {
+                            "ApiName": "$api_gateway"
+                        }
+                    }
+                ],
+                "gridPos": {
+                    "x": 0,
+                    "y": 0,
+                    "w": 6,
+                    "h": 3
+                }
+            },
+            {
+                "title": "API Gateway Latency",
+                "type": "timeseries",
+                "datasource": "CloudWatch",
+                "targets": [
+                    {
+                        "namespace": "AWS/ApiGateway",
+                        "metricName": "Latency",
+                        "statistics": [
+                            "Average"
+                        ],
+                        "dimensions": {
+                            "ApiName": "$api_gateway"
+                        }
+                    }
+                ],
+                "gridPos": {
+                    "x": 6,
+                    "y": 0,
+                    "w": 6,
+                    "h": 3
+                }
+            },
+            {
+                "title": "Lambda Invocations",
+                "type": "stat",
+                "datasource": "CloudWatch",
+                "targets": [
+                    {
+                        "namespace": "AWS/Lambda",
+                        "metricName": "Invocations",
+                        "statistics": [
+                            "Sum"
+                        ],
+                        "dimensions": {
+                            "FunctionName": "$lambda_function"
+                        }
+                    }
+                ],
+                "gridPos": {
+                    "x": 0,
+                    "y": 3,
+                    "w": 6,
+                    "h": 3
+                }
+            },
+            {
+                "title": "Lambda Duration",
+                "type": "timeseries",
+                "datasource": "CloudWatch",
+                "targets": [
+                    {
+                        "namespace": "AWS/Lambda",
+                        "metricName": "Duration",
+                        "statistics": [
+                            "Average"
+                        ],
+                        "dimensions": {
+                            "FunctionName": "$lambda_function"
+                        }
+                    }
+                ],
+                "gridPos": {
+                    "x": 6,
+                    "y": 3,
+                    "w": 6,
+                    "h": 3
+                }
+            },
+            {
+                "title": "ALB Active Connections",
+                "type": "stat",
+                "datasource": "CloudWatch",
+                "targets": [
+                    {
+                        "namespace": "AWS/ApplicationELB",
+                        "metricName": "ActiveConnectionCount",
+                        "statistics": [
+                            "Sum"
+                        ],
+                        "dimensions": {
+                            "LoadBalancer": "$alb"
+                        }
+                    }
+                ],
+                "gridPos": {
+                    "x": 0,
+                    "y": 6,
+                    "w": 6,
+                    "h": 3
+                }
+            },
+            {
+                "title": "ALB Request Count",
+                "type": "gauge",
+                "datasource": "CloudWatch",
+                "targets": [
+                    {
+                        "namespace": "AWS/ApplicationELB",
+                        "metricName": "RequestCount",
+                        "statistics": [
+                            "Sum"
+                        ],
+                        "dimensions": {
+                            "LoadBalancer": "$alb"
+                        }
+                    }
+                ],
+                "gridPos": {
+                    "x": 6,
+                    "y": 6,
+                    "w": 6,
+                    "h": 3
+                }
+            },
+            {
+                "title": "DynamoDB Read/Write Capacity",
+                "type": "timeseries",
+                "datasource": "CloudWatch",
+                "targets": [
+                    {
+                        "namespace": "AWS/DynamoDB",
+                        "metricName": "ConsumedReadCapacityUnits",
+                        "statistics": [
+                            "Sum"
+                        ],
+                        "dimensions": {
+                            "TableName": "$dynamodb_table"
+                        }
+                    }
+                ],
+                "gridPos": {
+                    "x": 0,
+                    "y": 9,
+                    "w": 12,
+                    "h": 3
+                }
+            },
+            {
+                "title": "S3 Bucket Size",
+                "type": "stat",
+                "datasource": "CloudWatch",
+                "targets": [
+                    {
+                        "namespace": "AWS/S3",
+                        "metricName": "BucketSizeBytes",
+                        "statistics": [
+                            "Average"
+                        ],
+                        "dimensions": {
+                            "BucketName": "$s3_bucket"
+                        }
+                    }
+                ],
+                "gridPos": {
+                    "x": 0,
+                    "y": 12,
+                    "w": 6,
+                    "h": 3
+                }
+            },
+            {
+                "title": "S3 Object Count",
+                "type": "stat",
+                "datasource": "CloudWatch",
+                "targets": [
+                    {
+                        "namespace": "AWS/S3",
+                        "metricName": "NumberOfObjects",
+                        "statistics": [
+                            "Average"
+                        ],
+                        "dimensions": {
+                            "BucketName": "$s3_bucket"
+                        }
+                    }
+                ],
+                "gridPos": {
+                    "x": 6,
+                    "y": 12,
+                    "w": 6,
+                    "h": 3
+                }
+            }
+        ],
+        "templating": {
+            "list": [
+                {
+                    "name": "api_gateway",
+                    "type": "query",
+                    "datasource": "CloudWatch",
+                    "query": "dimension_values(AWS/ApiGateway, Count, ApiName)",
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true,
+                    "allValue": "*",
+                    "current": {
+                        "text": "All",
+                        "value": "*"
+                    }
+                },
+                {
+                    "name": "lambda_function",
+                    "type": "query",
+                    "datasource": "CloudWatch",
+                    "query": "dimension_values(AWS/Lambda, Invocations, FunctionName)",
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true,
+                    "allValue": "*",
+                    "current": {
+                        "text": "All",
+                        "value": "*"
+                    }
+                },
+                {
+                    "name": "alb",
+                    "type": "query",
+                    "datasource": "CloudWatch",
+                    "query": "dimension_values(AWS/ApplicationELB, RequestCount, LoadBalancer)",
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true,
+                    "allValue": "*",
+                    "current": {
+                        "text": "All",
+                        "value": "*"
+                    }
+                },
+                {
+                    "name": "dynamodb_table",
+                    "type": "query",
+                    "datasource": "CloudWatch",
+                    "query": "dimension_values(AWS/DynamoDB, ConsumedReadCapacityUnits, TableName)",
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true,
+                    "allValue": "*",
+                    "current": {
+                        "text": "All",
+                        "value": "*"
+                    }
+                },
+                {
+                    "name": "s3_bucket",
+                    "type": "query",
+                    "datasource": "CloudWatch",
+                    "query": "dimension_values(AWS/S3, BucketSizeBytes, BucketName)",
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true,
+                    "allValue": "*",
+                    "current": {
+                        "text": "All",
+                        "value": "*"
+                    }
+                }
+            ]
+        }
+    }
+}
