@@ -1,0 +1,46 @@
+Hello AWS Support,
+
+We are experiencing recurring CPU spikes on multiple EC2 instances at the same time each day in different AWS accounts, all within the us-east-2 region. These spikes last for a short duration (around 5 minutes) and then return to normal.
+
+Notably, this pattern has been observed multiple times this week across different workloads that are otherwise unrelated, raising concerns that an AWS-side event might be contributing to this behavior.
+
+⸻
+
+Details of the Issue:
+	•	Region: us-east-2
+	•	Impact Time Window: Recurring at [specific time] UTC/CDT each day, lasting approximately 5 minutes.
+	•	EC2 Instances Affected: Multiple instances across different AWS accounts, experiencing CPU spikes of 85%+ before returning to normal.
+	•	Instance Tenancy: [Shared (default) or Dedicated (host)]
+	•	Workload Type: [Example: Bloomreach Delivery Nodes, Java-based application]
+	•	No AWS Health Alarms Triggered
+	•	We have checked AWS Health Dashboard, but no public incidents have been reported.
+
+⸻
+
+Analysis Performed So Far:
+
+✅ Ruled Out Application-Level Causes
+	•	No unusual application logs or heavy workloads detected during the spike window.
+	•	Health checks are consistent throughout the day, meaning they are not the direct cause.
+	•	Garbage Collection (GC) and Cache activity are present but not significantly different from normal behavior.
+
+✅ Checked AWS CloudWatch & Networking
+	•	No major spikes in user traffic or ALB request counts to indicate an external load increase.
+	•	No unusual memory utilization trends—CPU usage is the only metric fluctuating.
+
+✅ Noticed CPU Spikes in Other AWS Accounts Simultaneously
+	•	This suggests a potential AWS-side event rather than an isolated workload issue.
+
+⸻
+
+Request to AWS Support:
+
+We would appreciate your assistance in determining if there is any AWS-side event or infrastructure maintenance that could be impacting CPU performance across multiple accounts at the same time daily.
+
+Specifically, can you check for:
+	1.	Any underlying AWS infrastructure events affecting EC2 instances in us-east-2.
+	2.	Potential noisy neighbor effects on shared tenancy instances.
+	3.	AWS hypervisor-level issues or instance migrations occurring at the same time.
+	4.	Network or storage (EBS) performance issues that might lead to temporary CPU spikes.
+
+Please let us know if you need additional details, and we look forward to your response.
