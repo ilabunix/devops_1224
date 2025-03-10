@@ -1,0 +1,99 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "datasource": "CloudWatch",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "title": "AWS Trusted Advisor - Lambda Runtime Deprecations",
+      "type": "table",
+      "targets": [
+        {
+          "namespace": "AWS/TrustedAdvisor",
+          "metricName": "Service Limits",
+          "dimensions": {
+            "CheckId": "LAMBDA_RUNTIME_DEPRECATION"
+          },
+          "statistics": ["Sum"],
+          "period": "300"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "datasource": "CloudWatch",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "title": "AWS Trusted Advisor - Security Checks",
+      "type": "table",
+      "targets": [
+        {
+          "namespace": "AWS/TrustedAdvisor",
+          "metricName": "Security",
+          "statistics": ["Sum"],
+          "period": "300"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "datasource": "CloudWatch",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 3,
+      "title": "AWS Trusted Advisor - Service Limits",
+      "type": "graph",
+      "targets": [
+        {
+          "namespace": "AWS/TrustedAdvisor",
+          "metricName": "Service Limits",
+          "statistics": ["Sum"],
+          "period": "300"
+        }
+      ]
+    },
+    {
+      "datasource": "CloudWatch",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 4,
+      "title": "AWS Trusted Advisor - Fault Tolerance",
+      "type": "graph",
+      "targets": [
+        {
+          "namespace": "AWS/TrustedAdvisor",
+          "metricName": "Fault Tolerance",
+          "statistics": ["Sum"],
+          "period": "300"
+        }
+      ]
+    }
+  ],
+  "title": "AWS Trusted Advisor Overview",
+  "timezone": "browser",
+  "version": 1
+}
